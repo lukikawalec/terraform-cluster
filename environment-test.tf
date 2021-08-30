@@ -6,13 +6,18 @@ module "test-cluster" {
     key_pair = "you_keypair_name"
 
     network_rules = {
-        xyz = {
-            in_tcp = {
-                # allow incoming TCP on port 123 from 10.132.0.0/24
-                "10.132.0.0/24" = [ 123 ]     
-            }
-            # in_udp = {}
-        }
+        asterisk = [
+            ["in", "0.0.0.0/0", 5060, "tcp"],
+            ["in", "0.0.0.0/0", 5061, "tcp"],
+            ["in", "0.0.0.0/0", 5060, "udp"],
+            ["in", "0.0.0.0/0", "10000-10099", "udp"],
+            ["in", "0.0.0.0/0", "20000-20050", "udp"]
+        ],
+        out = [
+            ["out", "0.0.0.0/0", "all", "tcp"],
+            ["out", "0.0.0.0/0", "all", "udp"],
+            ["out", "0.0.0.0/0", "all", "icmp"]
+        ]
     }
 
     cluster = {
@@ -27,7 +32,7 @@ module "test-cluster" {
             floating_ips = [ "10.100.23.11" ]   # optional if you want to associate FIPs
             #fixed_ips = [ "10.111.1.100" ]     # optional if you want to set fixed IPs manually
             open_tcp_ports_for = {
-                "10.100.0.0/24": [ 22 ]
+                "10.100.0.0/24": [ 22 , "1000-2000"]
             }
             # open_udp_ports_for = ...
             security_groups = ["xyz"]

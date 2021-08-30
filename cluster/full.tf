@@ -6,21 +6,32 @@ module "net" {
     external_network_name = var.external_network_name
 
     networks = { for name, config in var.cluster: name => config.network } 
-    network_rules = merge({ 
-        for name, config in var.cluster: name => {
-            in_tcp = can(config.open_tcp_ports_for) ? {
-                for source, ports in config.open_tcp_ports_for: source => ports
-            } : {}
-            in_udp = can(config.open_udp_ports_for) ? {
-                for source, ports in config.open_udp_ports_for: source => ports 
-            } : {}
-        }
-    },{ 
-        for name, config in var.network_rules: name => {
-            in_tcp = try(config.in_tcp, {})
-            in_udp = try(config.in_udp, {})
-        }
-    })
+    network_rules = merge(
+        { 
+            for name, config in var.cluster: name => 
+                concat(
+                    try([for source, ports in config.open_tcp_ports_for: [for port in ports: ["in", source, port, "tcp"]]][0], []),
+                    try([for source, ports in config.open_udp_ports_for: [for port in ports: ["in", source, port, "udp"]]][0], [])
+                )
+        }, 
+        var.network_rules
+    )
+    # network_rules = merge({ 
+    #     for name, config in var.cluster: name => {
+    #         in_tcp = can(config.open_tcp_ports_for) ? {
+    #             for source, ports in config.open_tcp_ports_for: source => ports
+    #         } : {}
+    #         in_udp = can(config.open_udp_ports_for) ? {
+    #             for source, ports in config.open_udp_ports_for: source => ports 
+    #         } : {}
+    #     }
+    # },{ 
+    #     for name, config in var.network_rules: name => {
+    #         in_tcp = try(config.in_tcp, {})
+    #         in_udp = try(config.in_udp, {})
+    #     }
+    # })
+
 }
 
 locals {

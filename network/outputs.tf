@@ -13,3 +13,13 @@ output "cidrs" {
 output "security_group_names" {
     value = { for name, group in openstack_networking_secgroup_v2.security_groups: name => group.name }
 }
+
+output common_security_groups {
+    value = {
+        allow_out = [
+            ["out", "0.0.0.0/0", 0, "tcp"],
+            ["out", "0.0.0.0/0", 0, "tcp"],
+            ["out", "0.0.0.0/0", 0, "icmp"]
+        ]   
+    }
+}
