@@ -10,11 +10,12 @@ module "net" {
         { 
             for name, config in var.cluster: name => 
                 concat(
-                    try([for source, ports in config.open_tcp_ports_for: [for port in ports: ["in", source, port, "tcp"]]][0], []),
-                    try([for source, ports in config.open_udp_ports_for: [for port in ports: ["in", source, port, "udp"]]][0], [])
+                    try(flatten([for source, ports in config.open_tcp_ports_for: [for port in ports: {direction: "in", remote_addr: source, port: port, protocol: "tcp"}]]), []),
+                    try(flatten([for source, ports in config.open_udp_ports_for: [for port in ports: {direction: "in", remote_addr: source, port: port, protocol: "udp"}]]), [])
                 )
         }, 
-        var.network_rules
+        {for k,v in var.network_rules: k=> [for r in v: {direction: r[0], remote_addr: r[1], port: r[2], protocol: r[3]}]}
+        
     )
     # network_rules = merge({ 
     #     for name, config in var.cluster: name => {
@@ -39,7 +40,7 @@ locals {
         for name, config in var.cluster: [
             for idx in range(try(config.count, 1)):
                 {
-                    name = "${name}${idx + 1}"
+                    name = "${name}${idx + var.index_offset}"
                     flavor_name = config.flavor_name
                     image_name = try(config.image_name, "Centos-8-2004")
                     volume_size = config.volume_size != null ? config.volume_size : 20

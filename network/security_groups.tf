@@ -4,11 +4,11 @@ locals {
             [for r in rules: 
                 {
                     key = security_group_name
-                    direction = r[0] == "in"? "ingress": "egress"
-                    remote_ip_prefix = r[1]
-                    port_min = replace(tostring(r[2]), "-", "") != tostring(r[2]) ? split("-", tostring(r[2]))[0] : r[2]
-                    port_max = replace(tostring(r[2]), "-", "") != tostring(r[2]) ? split("-", tostring(r[2]))[1] : r[2]
-                    protocol = r[3]
+                    direction = r.direction == "in"? "ingress": "egress"
+                    remote_ip_prefix = r.remote_addr
+                    port_min = replace(tostring(r.port), "-", "") != tostring(r.port) ? split("-", tostring(r.port))[0] : r.port
+                    port_max = replace(tostring(r.port), "-", "") != tostring(r.port) ? split("-", tostring(r.port))[1] : r.port
+                    protocol = r.protocol
                 }
             ]
         ]

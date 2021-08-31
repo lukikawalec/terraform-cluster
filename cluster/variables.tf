@@ -57,3 +57,8 @@ variable "cluster" {
     type = any
     description = "Cluster definition"
 }
+
+variable "index_offset" {
+    type = number
+    default = 1
+}
