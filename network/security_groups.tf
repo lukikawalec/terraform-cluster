@@ -5,7 +5,7 @@ locals {
                 {
                     key = security_group_name
                     direction = r.direction == "in"? "ingress": "egress"
-                    remote_ip_prefix = r.remote_addr
+                    remote_ip_prefix = try(local.cidr_by_names[r.remote_addr], r.remote_addr)
                     port_min = replace(tostring(r.port), "-", "") != tostring(r.port) ? split("-", tostring(r.port))[0] : r.port
                     port_max = replace(tostring(r.port), "-", "") != tostring(r.port) ? split("-", tostring(r.port))[1] : r.port
                     protocol = r.protocol

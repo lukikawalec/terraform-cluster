@@ -10,8 +10,8 @@ module "net" {
         { 
             for name, config in var.cluster: name => 
                 concat(
-                    try(flatten([for source, ports in config.open_tcp_ports_for: [for port in ports: {direction: "in", remote_addr: source, port: port, protocol: "tcp"}]]), []),
-                    try(flatten([for source, ports in config.open_udp_ports_for: [for port in ports: {direction: "in", remote_addr: source, port: port, protocol: "udp"}]]), [])
+                    try(flatten([for remote_addr, ports in config.open_tcp_ports_for: [for port in ports: {direction: "in", remote_addr: remote_addr, port: port, protocol: "tcp"}]]), []),
+                    try(flatten([for remote_addr, ports in config.open_udp_ports_for: [for port in ports: {direction: "in", remote_addr: remote_addr, port: port, protocol: "udp"}]]), [])
                 )
         }, 
         {for k,v in var.network_rules: k=> [for r in v: {direction: r[0], remote_addr: r[1], port: r[2], protocol: r[3]}]}
