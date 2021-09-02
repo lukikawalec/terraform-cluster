@@ -20,7 +20,7 @@ resource "openstack_networking_secgroup_v2" "security_groups" {
     for_each             = var.network_rules
 
     name                 = "${var.environment}-${each.key}-sg"
-    description          = "${var.environment} - rules for ${each.key}"
+    description          = "Rules for ${each.key}"
     delete_default_rules = "true"
 }
 

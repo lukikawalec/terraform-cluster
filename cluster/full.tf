@@ -17,22 +17,6 @@ module "net" {
         {for k,v in var.network_rules: k=> [for r in v: {direction: r[0], remote_addr: r[1], port: r[2], protocol: r[3]}]}
         
     )
-    # network_rules = merge({ 
-    #     for name, config in var.cluster: name => {
-    #         in_tcp = can(config.open_tcp_ports_for) ? {
-    #             for source, ports in config.open_tcp_ports_for: source => ports
-    #         } : {}
-    #         in_udp = can(config.open_udp_ports_for) ? {
-    #             for source, ports in config.open_udp_ports_for: source => ports 
-    #         } : {}
-    #     }
-    # },{ 
-    #     for name, config in var.network_rules: name => {
-    #         in_tcp = try(config.in_tcp, {})
-    #         in_udp = try(config.in_udp, {})
-    #     }
-    # })
-
 }
 
 locals {
@@ -52,7 +36,8 @@ locals {
                     network_name = module.net.network_names[name]
                     security_groups = concat(
                         [module.net.security_group_names[name]], 
-                        values({for name in try(config.security_groups, []): name => module.net.security_group_names[name]})
+                        values({for name in try(config.security_groups, []): name => module.net.security_group_names[name]}),
+                        values({for name in try(var.default_security_groups, []): name => module.net.security_group_names[name]})
                     )
                     attach_volumes = try(config.attach_volumes[idx], null)
                     server_group_key = name

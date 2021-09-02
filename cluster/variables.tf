@@ -33,6 +33,11 @@ variable "network_rules" {
     default = {}
 }
 
+variable default_security_groups {
+    type = list(string)
+    description = "Default security groups"
+    default = []
+}
 
 variable "cluster" {
     #   The type should be declared as:
