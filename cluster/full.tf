@@ -8,7 +8,7 @@ module "net" {
     networks = { for name, config in var.cluster: name => config.network } 
     network_rules = merge(
         { 
-            for name, config in var.cluster: name => 
+            for name, config in var.cluster: "${name}-cluster" => 
                 concat(
                     try(flatten([for remote_addr, ports in config.open_tcp_ports_for: [for port in ports: {direction: "in", remote_addr: remote_addr, port: port, protocol: "tcp"}]]), []),
                     try(flatten([for remote_addr, ports in config.open_udp_ports_for: [for port in ports: {direction: "in", remote_addr: remote_addr, port: port, protocol: "udp"}]]), [])
@@ -35,7 +35,7 @@ locals {
                     availability_zone = try(config.availability_zone, null)
                     network_name = module.net.network_names[name]
                     security_groups = concat(
-                        [module.net.security_group_names[name]], 
+                        [module.net.security_group_names["${name}-cluster"]], 
                         values({for name in try(config.security_groups, []): name => module.net.security_group_names[name]}),
                         values({for name in try(var.default_security_groups, []): name => module.net.security_group_names[name]})
                     )
