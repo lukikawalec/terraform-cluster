@@ -25,7 +25,7 @@ resource "openstack_networking_secgroup_v2" "security_groups" {
 }
 
 resource "openstack_networking_secgroup_rule_v2" "rules" {
-    for_each        = { for rule in local.rules: "${rule.key}-${rule.remote_ip_prefix}-[${rule.port_min}-${rule.port_max}]/${rule.protocol}" => rule }
+    for_each        = { for rule in local.rules: "${rule.key}-${rule.direction}-${rule.remote_ip_prefix}-[${rule.port_min}-${rule.port_max}]/${rule.protocol}" => rule }
 
     direction         = each.value.direction
     ethertype         = "IPv4"
