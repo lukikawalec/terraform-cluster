@@ -6,6 +6,10 @@ output "networks" {
     value = { for key, net in openstack_networking_network_v2.net: key => net }
 }
 
+output "subnets" {
+    value = { for key, net in openstack_networking_subnet_v2.subnets: key => net }
+}
+
 output "cidrs" {
     value = local.cidr_by_names
 }

@@ -15,11 +15,16 @@ module "net" {
                 )
         }, 
         {for k,v in var.network_rules: k=> [for r in v: {direction: r[0], remote_addr: r[1], port: r[2], protocol: r[3]}]}
-        
     )
 }
 
 locals {
+    security_groups_for_cluster = {for name, config in var.cluster: name => concat(
+                        [module.net.security_group_names["${name}-cluster"]], 
+                        values({for name in try(config.security_groups, []): name => module.net.security_group_names[name]}),
+                        values({for name in try(var.default_security_groups, []): name => module.net.security_group_names[name]})
+                    )}
+
     machine_defs = flatten([
         for name, config in var.cluster: [
             for idx in range(try(config.count, 1)):
@@ -32,13 +37,12 @@ locals {
                     fixed_ip = try(length(config.fixed_ips), 0) > idx ? config.fixed_ips[idx] : null
                     generate_fip = try(config.generate_fip, false)
                     floating_ip = try(length(config.floating_ips), 0) > idx ? config.floating_ips[idx] : null
+                    vip = try(config.vip, null)
                     availability_zone = try(config.availability_zone, null)
+                    network_id = module.net.networks[name].id
+                    subnet_id = module.net.subnets[name].id
                     network_name = module.net.network_names[name]
-                    security_groups = concat(
-                        [module.net.security_group_names["${name}-cluster"]], 
-                        values({for name in try(config.security_groups, []): name => module.net.security_group_names[name]}),
-                        values({for name in try(var.default_security_groups, []): name => module.net.security_group_names[name]})
-                    )
+                    security_groups = local.security_groups_for_cluster[name]
                     attach_volumes = try(config.attach_volumes[idx], null)
                     server_group_key = name
                 }
@@ -46,6 +50,7 @@ locals {
     ])
 }
 
+# servers groups
 resource "openstack_compute_servergroup_v2" "server_groups" {
     for_each = { for name, config in var.cluster: name => config }
 
@@ -53,6 +58,33 @@ resource "openstack_compute_servergroup_v2" "server_groups" {
     policies = ["anti-affinity"]
 }
 
+
+# virtual ips
+resource "openstack_networking_port_v2" "vip" {
+    for_each = { for name, config in var.cluster: name => config if can(config.vip)}  
+
+    name           = "${var.environment}-${each.key}-vip"
+    network_id     = module.net.networks[each.key].id
+    admin_state_up = "true"
+
+    fixed_ip {
+        subnet_id  = module.net.subnets[each.key].id
+        ip_address = each.value.vip
+    }
+
+    port_security_enabled = false
+#   security_group_ids = local.security_groups_for_cluster[each.key] TODO
+}
+
+resource "openstack_networking_floatingip_associate_v2" "vip_associate" {
+    for_each = { for name, config in var.cluster: name => config if can(config.vip)}  
+
+    floating_ip = each.value.fip_for_vip
+    port_id     = openstack_networking_port_v2.vip[each.key].id
+}
+
+
+# instances
 module "instance" {
     source = "../instance"
 
@@ -68,7 +100,10 @@ module "instance" {
             fixed_ip = machine.fixed_ip
             generate_fip = machine.generate_fip
             floating_ip = machine.floating_ip
+            vip = machine.vip
             availability_zone = machine.availability_zone
+            network_id = machine.network_id
+            subnet_id = machine.subnet_id
             network_name = machine.network_name
             security_groups = machine.security_groups
             attach_volumes = machine.attach_volumes

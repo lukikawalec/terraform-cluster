@@ -4,6 +4,31 @@ locals {
     defined_fips = {for key, value in local.machines_with_flavors : key => value.floating_ip if value.floating_ip != null}
 }
 
+
+resource "openstack_networking_port_v2" "instance_port" {
+    for_each        = local.machines_with_flavors
+    name            = "${var.environment}-${each.key}-port"
+    network_id      = each.value.network_id
+    admin_state_up = "true"
+
+    dynamic allowed_address_pairs {
+        for_each = try(each.value.vip != null, false) ? {"ip" = each.value.vip}: {}
+        content {
+            ip_address = each.value.vip
+        }
+    }
+
+    # allowed_address_pairs {
+        
+    # } if can(each.value.vip)
+
+    fixed_ip {
+        subnet_id  = each.value.subnet_id
+        ip_address = each.value.fixed_ip
+    }
+}
+
+
 resource "openstack_compute_instance_v2" "instances" {
     for_each        = local.machines_with_flavors
 
@@ -23,8 +48,9 @@ resource "openstack_compute_instance_v2" "instances" {
     }
 
     network {
-        name = each.value.network_name
-        fixed_ip_v4 = each.value.fixed_ip
+        port = openstack_networking_port_v2.instance_port[each.key].id
+        # name = each.value.network_name
+        # fixed_ip_v4 = each.value.fixed_ip
     }
 
     availability_zone = each.value.availability_zone
